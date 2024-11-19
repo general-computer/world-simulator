@@ -49,6 +49,7 @@ class ShelterState:
     quality: float = 1.0  # Multiplier for weather protection (0.5-2.0)
     last_repair: int = 0  # Day of last repair
 
+@dataclass
 class WeatherState:
     type: WeatherType
     temperature: float
