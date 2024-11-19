@@ -8,8 +8,8 @@ import time
 from colorama import init, Fore, Back, Style
 
 # All the original simulator classes and code first
-[Previous class definitions for BiomeType, ResourceType, ActivityType, Season, WeatherType, 
-WeatherState, Climate, Position, Personality, Entity, Tile, and World remain exactly the same]
+#[Previous class definitions for BiomeType, ResourceType, ActivityType, Season, WeatherType, 
+#WeatherState, Climate, Position, Personality, Entity, Tile, and World remain exactly the same]
 
 class WorldDemo:
     def __init__(self, world_size: int = 8):
