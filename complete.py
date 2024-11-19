@@ -391,4 +391,74 @@ class WorldDemo:
         entities = [
             ("Alice", "Cautious gatherer", 0.8),
             ("Bob", "Social butterfly", 0.3),
-            ("Charlie", "
+            ("Charlie", "Industrious builder", 0.6),
+            ("Diana", "Curious explorer", 0.4)
+        ]
+        
+        for name, desc, caution in entities:
+            x = random.randint(0, self.world.width - 1)
+            y = random.randint(0, self.world.height - 1)
+            entity = Entity(name, Position(x, y))
+            entity.personality.caution = caution
+            self.world.add_entity(entity)
+
+    def get_weather_display(self) -> str:
+        weather = self.world.climate.current_weather
+        return (
+            f"Weather: {weather.type.value} "
+            f"({weather.temperature:.1f}°C, "
+            f"Wind: {weather.wind_speed:.1f}m/s)"
+        )
+
+    def get_season_display(self) -> str:
+        return f"Season: {self.world.climate.current_season.value}"
+
+    def display_world_state(self):
+        init()  # Initialize colorama
+        print("\033[2J\033[H")  # Clear screen
+        print(f"Day: {self.world.time}")
+        print(self.get_season_display())
+        print(self.get_weather_display())
+        print("\nWorld State:")
+        
+        # Display grid
+        for y in range(self.world.height):
+            for x in range(self.world.width):
+                entities_here = [e for e in self.world.entities if e.position.x == x and e.position.y == y]
+                tile = self.world.grid[y][x]
+                
+                if entities_here:
+                    print(Fore.GREEN + "E" + Style.RESET_ALL, end=" ")
+                else:
+                    biome_colors = {
+                        BiomeType.FOREST: Fore.GREEN,
+                        BiomeType.PLAINS: Fore.YELLOW,
+                        BiomeType.MOUNTAIN: Fore.WHITE,
+                        BiomeType.DESERT: Fore.RED
+                    }
+                    color = biome_colors.get(tile.biome, Fore.WHITE)
+                    print(color + tile.biome.value[0].upper() + Style.RESET_ALL, end=" ")
+            print()
+        
+        print("\nEntities:")
+        for entity in self.world.entities:
+            status = "🏠 " if entity.has_shelter else "   "
+            print(f"{status}{entity.name}: Energy={entity.energy:.0f}, "
+                  f"Hunger={entity.hunger:.0f}, "
+                  f"Activity={entity.current_activity.value if entity.current_activity else 'none'}")
+
+    def run_simulation(self, days: int = 50, delay: float = 2.0):
+        try:
+            for _ in range(days):
+                self.world.update()
+                self.display_world_state()
+                time.sleep(delay)
+        except KeyboardInterrupt:
+            print("\nSimulation stopped by user")
+
+def main():
+    demo = WorldDemo(8)
+    demo.run_simulation()
+
+if __name__ == "__main__":
+    main()
