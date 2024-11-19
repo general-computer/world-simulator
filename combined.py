@@ -416,7 +416,7 @@ class WorldDemo:
                 if weather.is_dangerous:
                     print(f"\n⚠ Warning: Dangerous weather conditions detected!")
                     for entity in self.world.entities:
-                        if entity.has_shelter:
+                        if entity.shelter:
                             print(f"  {entity.name} is safely in shelter")
                         else:
                             print(f"  {entity.name} is exposed to the elements!")
