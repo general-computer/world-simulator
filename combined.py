@@ -43,6 +43,12 @@ class WeatherType(Enum):
     HEATWAVE = "Heatwave"
 
 @dataclass
+@dataclass
+class ShelterState:
+    durability: float = 100.0  # Max durability of shelter
+    quality: float = 1.0  # Multiplier for weather protection (0.5-2.0)
+    last_repair: int = 0  # Day of last repair
+
 class WeatherState:
     type: WeatherType
     temperature: float
@@ -135,14 +141,18 @@ class Entity:
         }
         self.relationships: Dict[str, float] = {}  # name -> relationship value
         self.current_activity: Optional[ActivityType] = None
-        self.has_shelter = False
+        self.shelter: Optional[ShelterState] = None
         
     def update(self, world: 'World'):
         """Update entity state based on world conditions"""
+        # Update shelter conditions
+        self.update_shelter(world)
+        
         # Update body temperature based on weather
         weather = world.climate.current_weather
         temp_diff = weather.temperature - self.temperature
-        self.temperature += temp_diff * 0.1
+        shelter_protection = 0.5 if self.shelter else 1.0  # Shelter reduces temperature effects
+        self.temperature += temp_diff * 0.1 * shelter_protection
         
         # Energy consumption
         self.energy -= 1.0  # Base energy loss
@@ -161,13 +171,45 @@ class Entity:
             
     def seek_shelter(self, world: 'World'):
         """Try to find or build shelter"""
-        if not self.has_shelter:
+        if not self.shelter:
             self.current_activity = ActivityType.SEEKING_SHELTER
             if self.inventory[ResourceType.WOOD] >= 5 and self.inventory[ResourceType.STONE] >= 3:
-                self.has_shelter = True
+                self.shelter = ShelterState()
                 self.inventory[ResourceType.WOOD] -= 5
                 self.inventory[ResourceType.STONE] -= 3
+                print(f"{self.name} built a new shelter!")
+        elif self.shelter.durability < 50 and self.inventory[ResourceType.WOOD] >= 2:
+            # Repair shelter
+            self.inventory[ResourceType.WOOD] -= 2
+            self.shelter.durability = min(100, self.shelter.durability + 40)
+            self.shelter.last_repair = world.climate.day_of_year
+            print(f"{self.name} repaired their shelter!")
                 
+    def update_shelter(self, world: 'World'):
+        """Update shelter condition based on weather"""
+        if not self.shelter:
+            return
+            
+        weather = world.climate.current_weather
+        
+        # Calculate decay based on weather conditions
+        decay_rate = 0.1  # Base decay
+        if weather.type in {WeatherType.STORM, WeatherType.SNOW}:
+            decay_rate += 0.4
+        elif weather.type in {WeatherType.RAIN}:
+            decay_rate += 0.2
+        
+        # Wind damage
+        decay_rate += weather.wind_speed * 0.02
+        
+        # Apply decay
+        self.shelter.durability -= decay_rate
+        
+        # Destroy shelter if durability reaches 0
+        if self.shelter.durability <= 0:
+            print(f"{self.name}'s shelter has collapsed!")
+            self.shelter = None
+
     def choose_activity(self, world: 'World'):
         """Choose a new activity based on personality and circumstances"""
         if world.climate.current_weather.is_dangerous and self.personality.caution > 0.3:
@@ -332,7 +374,11 @@ class WorldDemo:
         
         print("\nEntities:")
         for entity in self.world.entities:
-            status = "🏠" if entity.has_shelter else "  "
+            status = "🏠" if entity.shelter else "  "
+            if entity.shelter:
+                status += f"({entity.shelter.durability:.0f}%)"
+            else:
+                status += "      "
             activity = entity.current_activity.value if entity.current_activity else "idle"
             print(f"{status} {entity.name:8} | Energy: {entity.energy:5.1f} | "
                   f"Temp: {entity.temperature:4.1f}°C | "
